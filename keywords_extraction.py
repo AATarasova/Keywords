@@ -1,16 +1,16 @@
 import operator
 import pymorphy2
 
-from nltk.corpus   import stopwords
+from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
-from nltk.stem     import SnowballStemmer
+from nltk.stem import SnowballStemmer
 
 from string import punctuation
 
-corpus_words = []
 
 # term frequency
-def tf(text_tokens, words_and_count=dict()):
+def tf(text_tokens):
+    words_and_count = dict()
     for word in text_tokens:
         if word not in words_and_count:
             words_and_count[word] = text_tokens.count(word)
@@ -19,11 +19,11 @@ def tf(text_tokens, words_and_count=dict()):
 
 
 # document frequency
-def df(text_tokens, corpus_tokens_arrays, words_and_count=dict()):
+def df(text_tokens, corpus_tokens_arrays):
+    words_and_count = dict()
     if len(corpus_tokens_arrays) == 0:
-        print('empty')
         return dict.fromkeys(text_tokens.keys(), 1)
-    print(len(corpus_tokens_arrays))
+
     corpus_sets = [set(tokens) for tokens in corpus_tokens_arrays]
 
     for token in set(text_tokens):  # убрали повторы
@@ -42,13 +42,14 @@ def tf_idf(text_tokens, corpus_tokens_arrays):
 
     return {key: tf_res[key] if key in df_res else tf_res[key] / df_res[key] for key in tf_res.keys()}
 
+
 # Токенизация
 
 class Corpus:
 
-    def __init__(self, text_list = None):
+    def __init__(self, text_list=None):
         self.redundant = stopwords.words('russian') + [punc for punc in punctuation]
-        self.corpus    = [] # список словарей
+        self.corpus = []  # список словарей
         self.morph = pymorphy2.MorphAnalyzer()
 
         if text_list is not None:
@@ -59,7 +60,7 @@ class Corpus:
         return self.lemmatize(self.tokenize(text))
 
     # Вход - текст (str), выход - список токенов:
-    def tokenize (self, text):
+    def tokenize(self, text):
         regexp = RegexpTokenizer(r'\w+')  # задаем регулярное выражение
 
         # Непосредственно токенизация:
@@ -68,10 +69,9 @@ class Corpus:
 
         return res_tokens
 
-
     # Лемматизация
     # Вход - список, выход - список
-    def lemmatize (self, tokens):
+    def lemmatize(self, tokens):
         return [self.morph.parse(token)[0].normal_form for token in tokens if token not in self.redundant]
 
     # просто все слова
@@ -83,17 +83,21 @@ class Corpus:
     # count - ограничение на число слов, -1 означает отстутствие ограничения
     # level - минимальное значение метрики tf-idf, 0 означает отстутствие ограничения
     # Выбираются в ключевые только те слова, которые удовлетворяют обеим метрикам
-    def get_keywords(self, text, count = -1, level = -1.0):
+    def get_keywords(self, text, count=-1, level=-1.0):
         words_dict = self.get_words_with_metrics(text)
         return self.choose_keywords(words_dict, count, level)
 
     @staticmethod
-    def choose_keywords(keywords_dict, count = -1, level = -1.0):
+    def normalize(keywords_dict):
+        max_metric_value = max(keywords_dict.values())
+        return {key: keywords_dict[key] / max_metric_value for key in keywords_dict.keys()}
+
+    @staticmethod
+    def choose_keywords(keywords_dict, count=-1, level=-1.0):
         if keywords_dict is None or len(keywords_dict) == 0:
             return dict()
 
-        max_metric_value = max(keywords_dict.values())
-        keywords_dict = {key: keywords_dict[key] / max_metric_value for key in keywords_dict.keys()}
+        keywords_dict = Corpus.normalize(keywords_dict)
 
         if count > 0 or level > 0:
             # sum_metric_values = sum(words_dict.values())
@@ -133,4 +137,3 @@ class Corpus:
     def stemmer(word):
         snowball = SnowballStemmer(language="russian")
         return snowball.stem(word)
-

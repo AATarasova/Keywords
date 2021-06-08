@@ -23,8 +23,10 @@ class KeywordsComparator:
 
     def compare_dict(self, level_prezentation, level_audio):
         most_freq_prez  = set(Corpus.choose_keywords(self.presentation_keywords, level = level_prezentation).keys())
-        most_freq_audio = set(Corpus.choose_keywords(self.audio_keywords, level = level_audio).keys())
+        most_freq_audio = set(Corpus.choose_keywords(self.audio_keywords,        level = level_audio).keys())
 
+        print('Ключевые в презентации', most_freq_prez)
+        print('Ключевые в речи', most_freq_audio)
         least_freq_audio = set(self.audio_keywords.keys()) - most_freq_audio
 
         concurrence = dict({'NOUN': 0, 'VERB': 0, 'ADJ': 0, 'NOT_IMPORTANT': 0})
@@ -36,14 +38,14 @@ class KeywordsComparator:
             if word in most_freq_audio:
                 concurrence[key] += value
             elif word in least_freq_audio:
-                print('aga')
                 difference[key] += value
             else:
-                res = self.not_found(word, most_freq_audio, least_freq_audio)
-
-                if res == 0:
+                k, w = self.not_found(word, most_freq_audio, least_freq_audio)
+                if k == 'DIFF':
+                    key, value = Corpus.weight(w)
                     difference[key] += value
-                elif res > 0:
+                elif k == 'CONC':
+                    key, value = Corpus.weight(w)
                     concurrence[key] += value
 
         concurrence_sum = sum(concurrence.values())
@@ -52,11 +54,13 @@ class KeywordsComparator:
 
     @staticmethod
     def not_found(word, most_frec, least_frec):
-        stem = Corpus.stemmer(word)
-        for token in most_frec:
-            if token.find(stem) > -1:
-                return Corpus.weight(word)
-        for token in least_frec:
-            if token.find(stem) > -1:
-                return 0
-        return -1
+        # stem = Corpus.stemmer(word)
+        #
+        # for token in most_frec:
+        #     if token.find(stem) > -1:
+        #         return ('CONC', token)
+        # for token in least_frec:
+        #     if token.find(stem) > -1:
+        #         return ('DIFF', token)
+        # return ('NOT_FOUND', -1)
+        return ('DIFF', word)
