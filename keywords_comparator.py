@@ -25,8 +25,6 @@ class KeywordsComparator:
         most_freq_prez  = set(Corpus.choose_keywords(self.presentation_keywords, level = level_prezentation).keys())
         most_freq_audio = set(Corpus.choose_keywords(self.audio_keywords,        level = level_audio).keys())
 
-        print('Ключевые в презентации', most_freq_prez)
-        print('Ключевые в речи', most_freq_audio)
         least_freq_audio = set(self.audio_keywords.keys()) - most_freq_audio
 
         concurrence = dict({'NOUN': 0, 'VERB': 0, 'ADJ': 0, 'NOT_IMPORTANT': 0})
@@ -54,13 +52,34 @@ class KeywordsComparator:
 
     @staticmethod
     def not_found(word, most_frec, least_frec):
-        # stem = Corpus.stemmer(word)
-        #
-        # for token in most_frec:
-        #     if token.find(stem) > -1:
-        #         return ('CONC', token)
-        # for token in least_frec:
-        #     if token.find(stem) > -1:
-        #         return ('DIFF', token)
-        # return ('NOT_FOUND', -1)
-        return ('DIFF', word)
+        stem = Corpus.stemmer(word)
+
+        for token in most_frec:
+            if token.find(stem) > -1:
+                return ('CONC', token)
+        for token in least_frec:
+            if token.find(stem) > -1:
+                return ('DIFF', token)
+        return ('NOT_FOUND', -1)
+
+
+    def compare_dict_without_stemming(self, level_prezentation, level_audio):
+        most_freq_prez  = set(Corpus.choose_keywords(self.presentation_keywords, level = level_prezentation).keys())
+        most_freq_audio = set(Corpus.choose_keywords(self.audio_keywords,        level = level_audio).keys())
+
+        least_freq_audio = set(self.audio_keywords.keys()) - most_freq_audio
+
+        concurrence = dict({'NOUN': 0, 'VERB': 0, 'ADJ': 0, 'NOT_IMPORTANT': 0})
+        difference  = dict({'NOUN': 0, 'VERB': 0, 'ADJ': 0, 'NOT_IMPORTANT': 0})
+
+        for word in most_freq_prez:
+            key, value = Corpus.weight(word)
+
+            if word in most_freq_audio:
+                concurrence[key] += value
+            else:
+                difference[key] += value
+
+        concurrence_sum = sum(concurrence.values())
+        difference_sum = sum(difference.values())
+        return concurrence_sum / (concurrence_sum + difference_sum)
